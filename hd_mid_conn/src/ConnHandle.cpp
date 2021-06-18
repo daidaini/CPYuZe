@@ -3,6 +3,8 @@
 #include "VerifyHandle.h"
 #include "StepPackage.h"
 
+#define NonBlock
+
 ConnHandle::ConnHandle(string addr, int port):
 	m_Ip(addr), m_Port(port)
 {
@@ -27,19 +29,107 @@ ConnHandle::~ConnHandle()
 #endif
 }
 
+void ConnHandle::SetNonBlock()
+{
+#ifdef WIN32
+	u_long iMode = 1; //非阻塞
+	::ioctlsocket(sock, FIONBIO, &iMode);
+#else
+	int flags = fcntl(m_Socket, F_GETFL, 0);
+	flags |= O_NONBLOCK;
+	fcntl(m_Socket, F_SETFL, flags);
+#endif
+}
+
+#ifndef NonBlock
 bool ConnHandle::Connect()
 {
 	auto addr_len = sizeof(sockaddr_in);
 
+	/*linux下，阻塞情况默认超时时间为75秒
+	*/
 	int connect_ret = connect(m_Socket, (sockaddr*)&m_Addr, addr_len);
 	if (connect_ret < 0)
 	{
+		Logger::GetInstance().Warn("[addr:{}:{}]connect failed", m_Ip, m_Port);
 		return false;
 	}
+
+	int timeout = 10000; //10秒
+	//发送超时设置
+	setsockopt(m_Socket, SOL_SOCKET, SO_SNDTIMEO, (void*)&timeout, sizeof(int));
+	//接收超时设置
+	setsockopt(m_Socket, SOL_SOCKET, SO_RCVTIMEO, (void*)&timeout, sizeof(int));
 
 	m_AliveTime = time(NULL);
 	return true;
 }
+#else
+bool ConnHandle::Connect()
+{
+	SetNonBlock();
+
+	auto addr_len = sizeof(sockaddr_in);
+	int rc = connect(m_Socket, (sockaddr*)&m_Addr, addr_len);
+	Logger::GetInstance().Warn("connect return:{}", rc);
+
+	fd_set fdr, fdw;
+	if(rc != 0)
+	{
+		if(errno == EINPROGRESS)
+		{
+			//正在处理连接
+			FD_ZERO(&fdw);
+			FD_ZERO(&fdr);
+			FD_SET(m_Socket, &fdw);
+			FD_SET(m_Socket, &fdr);
+			timeval timeout{10,0}; //10秒超时
+
+			rc = select(m_Socket + 1, &fdr, &fdw, nullptr, &timeout);
+			if(rc < 0)
+			{
+				Logger::GetInstance().Warn("connect error:{}", strerror(errno));
+				return false;
+			}
+
+			if(rc == 0)
+			{
+				Logger::GetInstance().Warn("connect timeout");
+				return false;
+			}
+
+			//当连接成功时，描述符变为可写，rc=1
+			if(rc == 1 && FD_ISSET(m_Socket, &fdw))
+			{
+				m_AliveTime = time(NULL);
+				return true;
+			}
+
+			if(rc == 2)
+			{
+				int err = 0;
+				auto errlen = sizeof(err);
+				if(getsockopt(m_Socket, SOL_SOCKET, SO_ERROR, &err, (socklen_t*)&errlen) == -1)
+				{
+					Logger::GetInstance().Warn("getsockopt(SO_ERROR):{}", strerror(errno));
+					return false;
+				}
+				if(err != 0)
+				{
+					errno = err;
+					Logger::GetInstance().Warn("connect failed1:{}", strerror(errno));
+					return false;
+				}
+			}
+		}
+		Logger::GetInstance().Warn("connect failed2:{}", strerror(errno));
+		return false;
+	}
+	
+	return true;
+}
+
+#endif
 
 void ConnHandle::RefreshAliveTime()
 {
@@ -149,60 +239,44 @@ bool ConnHandle::DoRequest(const string& request)
 }
 #else
 /*select写法*/
-//
-//void ConnHandle::DoRequest(string request)
-//{
-//    fd_set fs_read;
-//    fd_set fs_write;
-//    FD_ZERO(&fs_read);
-//    FD_ZERO(&fs_write);
-//    timeval timeout{ 0, 100 };
-//
-//    for (;;)
-//    {
-//        FD_SET(m_Socket, &fs_read);
-//        FD_SET(m_Socket, &fs_write);
-//        int select_ret = select(m_Socket + 1, &fs_read, &fs_write, NULL, &timeout);
-//        
-//        if (select_ret <= 0)
-//        {
-//            cout << "select error\n";
-//            
-//            continue;
-//        }
-//
-//        if (FD_ISSET(m_Socket, &fs_read))
-//        {
-//            char buf[2048]{};
-//            int ret = recv(m_Socket, buf, sizeof(buf) - 1, 0);
-//            if (ret <= 0)
-//            {
-//                cout << "recv happen some error\n";
-//                return;
-//            }
-//            DealAnswer(buf);
-//            FD_CLR(m_Socket, &fs_read);
-//        }
-//        else if (!VerifyHandle::GetInstance().IsEmpty() && FD_ISSET(m_Socket, &fs_write))
-//        {
-//            auto req = VerifyHandle::GetInstance().GetRequest();
-//            if (!req.empty())
-//            {
-//                int ret = send(m_Socket, req.c_str(), req.length(), 0);
-//                if (ret < 0)
-//                {
-//                    cout << "send happen some error\n";
-//                    return;
-//                }
-//                else
-//                {
-//                }
-//            }
-//            FD_CLR(m_Socket, &fs_write);
-//            this_thread::sleep_for(chrono::milliseconds(10));
-//        }   
-//    }
-//}
+bool ConnHandle::DoRequest(const string& request)
+{
+    fd_set fs_read;
+    FD_ZERO(&fs_read);
+    timeval timeout{ 0, 100 };
+
+	if(!SendRequest(request))
+	{
+		return false;
+	}
+
+    for (;;)
+    {
+        FD_SET(m_Socket, &fs_read);
+        int select_ret = select(m_Socket + 1, &fs_read, nullptr, nullptr, &timeout);
+        
+        if (select_ret <= 0)
+        {
+            Logger::GetInstance().Warn("[index:{}] select error : {}", m_ReqIndex, strerror(errno));
+            continue;
+        }
+
+        if (FD_ISSET(m_Socket, &fs_read))
+        {
+            char buf[2048]{};
+            int ret = recv(m_Socket, buf, sizeof(buf) - 1, 0);
+            if (ret <= 0)
+            {
+				Logger::GetInstance().Warn("[index:{}] recv happen some error: {}", m_ReqIndex, strerror(errno));
+                return false;
+            }
+			Logger::GetInstance().Info("[index:{}] {}", m_ReqIndex, buf);
+            DealAnswer(buf);
+            FD_CLR(m_Socket, &fs_read);
+			return true;
+        }
+    }
+}
 
 #endif // !NonBlock
 

@@ -38,4 +38,6 @@ private:
 	unique_ptr<TaskHandle> m_TaskHandle;
 
 	CallbackType m_RspFunc;
+
+	int m_TaskConnTimeOut = 10; //秒
 };

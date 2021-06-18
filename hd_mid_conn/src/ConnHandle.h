@@ -44,6 +44,8 @@ private:
 	bool SendRequest(const string& request);
 	bool RecvResponse(char* recvBuf, int recvBufLen);
 
+	void SetNonBlock();
+
 private:
 	string m_Ip;
 	int m_Port;

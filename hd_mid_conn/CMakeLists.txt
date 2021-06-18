@@ -6,6 +6,8 @@ project(${PROJECT_NAME})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread")
 
+set(CMAKE_BUILD_TYPE "Debug")
+
 macro(add_source soure_name soure_dir)
     include_directories(${soure_dir})
     set(hfind ${ARGV1})
@@ -21,6 +23,8 @@ endmacro(add_source)
 add_definitions("-D_CRT_SECURE_NO_WARNINGS")
 add_definitions("-DUNICODE -D_UNICODE")
 
+add_definitions("-DNonBlock")
+
 add_source(src ./src)
 add_source(Utility ./Utility)
 add_source(interface ./interface)
@@ -29,5 +33,5 @@ add_source(json ./jsoncpp)
 
 include_directories(./Log)
 
-#add_executable(${PROJECT_NAME} ${all_file} main.cpp)
-add_library(${PROJECT_NAME} SHARED ${all_file})
+add_executable(${PROJECT_NAME} ${all_file} main.cpp)
+#add_library(${PROJECT_NAME} SHARED ${all_file})

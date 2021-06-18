@@ -70,7 +70,7 @@ bool VerifyHandle::Init()
 	catch (const std::exception& e)
 	{
 		OnResult(ErrCodeEnum::OtherError, "config data format happened some error"s, -1);
-		Logger::GetInstance().Warn("∂¡»°≈‰÷√{}≥ˆ¥Ì:[{}]", configPath, e.what());
+		Logger::GetInstance().Warn("????{}??:[{}]", configPath, e.what());
 		return false;
 	}
 	return true;
@@ -86,10 +86,16 @@ void VerifyHandle::HandleRequestTask(int index, const string request)
 {
 	auto conn = ConnectionPool::GetInstance().PopConnection();
 	
-	while (conn == nullptr)
+	if (conn == nullptr)
 	{
 		unique_lock<mutex> lock(m_Mt);
-		m_Cv.wait(lock);
+		std::cv_status status = m_Cv.wait_for(lock, chrono::seconds(m_TaskConnTimeOut));
+		if(status == cv_status::timeout)
+		{
+			OnResult(ErrCodeEnum::OtherError, "connect overtime error"s, -1);
+			Logger::GetInstance().Warn("Get connection from connect pool failed[overtime]");
+			return;
+		}
 		conn = ConnectionPool::GetInstance().PopConnection();
 	}
 
