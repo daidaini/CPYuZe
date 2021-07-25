@@ -1,9 +1,8 @@
-#include "t_future.h"
-
-
+#include "t_mutex.h"
+#include "t_weak_ptr.h"
 
 int main(int argc, char* argv[])
 {
-    test_use_async();
+    testShrotLifeFactory();
     return 0;
 }

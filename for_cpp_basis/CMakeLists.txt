@@ -9,7 +9,8 @@ project(${project_name})
 set(CMAKE_BUILD_TYPE "Debug")
 
 set(SOURCES
-    include/t_future.h
+    include/t_mutex.h
+	include/t_weak_ptr.h
     main.cpp)
 
 add_executable(${project_name} ${SOURCES})

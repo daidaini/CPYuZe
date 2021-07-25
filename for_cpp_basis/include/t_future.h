@@ -49,9 +49,27 @@ void test_use_async()
 {
     std::future<int> fut = std::async(launch::async, std::bind(th_func_2, 21));
 
+    cout << fut.get() << endl;
     //int result = fut.get();
 
     //cout << "result = " << result <<endl;
 
     cout << "in use async\n";
+}
+
+string join_str(const string& ins)
+{
+    return "#"s + ins +  "#"s;
+}
+
+void test_use_aysnc_2()
+{
+    string src{ "this is a try" };
+    std::future<string> fuRes = std::async(launch::async, std::bind(join_str, std::ref(src)));
+
+    //阻塞
+    string result = fuRes.get();
+    cout << "already get words\n";
+
+    cout << result << endl;
 }
