@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <string.h>
 
@@ -17,4 +19,18 @@
 #include <map>
 #include <unordered_map>
 #include <assert.h>
+#include <deque>
 using namespace std;
+
+namespace self_test
+{
+	class noncopyable
+	{
+		noncopyable(const noncopyable&) = delete;
+		void operator=(const noncopyable&) = delete;
+
+	protected:
+		noncopyable() = default;
+		~noncopyable() = default;
+	};
+}
