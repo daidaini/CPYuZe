@@ -18,12 +18,11 @@ public:
 	}
 	~CustomerData()
 	{
-
 	}
-	CustomerData(const CustomerData&) = delete;
-	CustomerData operator=(const CustomerData&) = delete;
+	CustomerData(const CustomerData &) = delete;
+	CustomerData operator=(const CustomerData &) = delete;
 
-	int Query(const string& customer, const string& stock)
+	int Query(const string &customer, const string &stock)
 	{
 		MapPtr data = GetData();
 		//data 一旦拿到，就不需要再锁了
@@ -33,7 +32,6 @@ public:
 		auto dataIt = _data->find(customer);
 		if (dataIt == _data->end())
 			return -1;
-
 
 		return FindEntry(dataIt->second, stock);
 	}
@@ -46,7 +44,7 @@ private:
 	using MapPtr = shared_ptr<Map>;
 
 	//更新customer的数据
-	void Update(const string& customer, const EntryList& entries)
+	void Update(const string &customer, const EntryList &entries)
 	{
 		lock_guard<mutex> guard(_lock); //整个update都要锁
 
@@ -67,19 +65,20 @@ private:
 		(*_data)[customer] = entries;
 	}
 
-	static int FindEntry(const EntryList& entries, const string& stock)
+	static int FindEntry(const EntryList &entries, const string &stock)
 	{
 		//具体算法省略
-		auto dst = std::find_if(entries.begin(), entries.end(), 
-			[&stock](const Entry& src){
-				return src.first == stock;
-			});
+		auto dst = std::find_if(entries.begin(), entries.end(),
+								[&stock](const Entry &src)
+								{
+									return src.first == stock;
+								});
 		if (dst == entries.end())
 			return -1;
 
 		return dst->second;
 	}
-	
+
 	MapPtr GetData()
 	{
 		lock_guard<mutex> guard(_lock);
@@ -88,5 +87,51 @@ private:
 
 	std::mutex _lock;
 	MapPtr _data;
-
 };
+
+inline namespace circular_reference_test
+{
+	class A;
+	class B;
+	class A
+	{
+	public:
+		void SetMem(shared_ptr<B> e)
+		{
+			_B = e;
+		}
+		//shared_ptr<B> _B;
+		weak_ptr<B> _B;
+	};
+
+	class B
+	{
+	public:
+		void SetMem(shared_ptr<A> e)
+		{
+			_A = e;
+		}
+		shared_ptr<A> _A;
+	};
+
+	void circular_reference_impl()
+	{
+		weak_ptr<A> ap;
+		weak_ptr<B> bp;
+		cout << ap.use_count() << endl
+			 << bp.use_count() << endl;
+		{
+			shared_ptr<A> a = make_shared<A>();
+			shared_ptr<B> b = make_shared<B>();
+			ap = a;
+			bp = b;
+			a->SetMem(b);
+			b->SetMem(a);
+		}
+
+		cout << "circular_reference_test end\n";
+		cout << ap.use_count() << endl
+			 << bp.use_count() << endl;
+	}
+
+} // namespace circular_reference_test

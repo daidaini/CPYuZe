@@ -92,3 +92,4 @@ void testShrotLifeFactory()
 	}
 	//stock destructs here
 }
+

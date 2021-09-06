@@ -1,8 +1,13 @@
-#include "t_mutex.h"
-#include "t_weak_ptr.h"
 
-int main(int argc, char* argv[])
+#include "comm.h"
+#include "t_hash.h"
+#include "t_blocking_queue.h"
+
+
+int main(int argc, char *argv[])
 {
-    testShrotLifeFactory();
+    bq_test();
+    
+    getchar();
     return 0;
 }

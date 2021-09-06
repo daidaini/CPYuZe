@@ -4,6 +4,9 @@ set(project_name "for_cpp_basis")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread")
 
+#SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -00 -Wall -g -ggdb")
+#SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -032 -Wall")
+
 project(${project_name})
 
 set(CMAKE_BUILD_TYPE "Debug")
@@ -12,6 +15,8 @@ set(SOURCES
     include/t_mutex.h
 	include/t_weak_ptr.h
     main.cpp)
+
+include_directories(include)
 
 add_executable(${project_name} ${SOURCES})
 
