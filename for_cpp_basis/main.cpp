@@ -1,13 +1,24 @@
 
-#include "comm.h"
+#include "../common/comm.h"
 #include "t_hash.h"
-#include "t_blocking_queue.h"
+#include "t_rReference.h"
+#include "t_virtual.h"
+#include "t_thread.h"
+#include "t_priority_queue.h"
 
+
+using FuncType = std::function<void()>;
+FuncType myFunc;
+
+void registerCallBack(FuncType const&)
+{
+
+}
 
 int main(int argc, char *argv[])
 {
-    bq_test();
-    
-    getchar();
-    return 0;
+    //priority_queue_test::test();
+
+
+
 }

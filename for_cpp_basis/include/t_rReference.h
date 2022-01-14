@@ -36,6 +36,11 @@ inline namespace TestMoveSemantic
             Mobile = std::move(rhs.Mobile);
             return *this;
         }
+
+        void Print() const
+        {
+            cout << ClientName << " : " << IdNo << " -- " << Mobile <<endl;
+        }
     };
 
     ClientUserInfo GetClient()
@@ -48,6 +53,14 @@ inline namespace TestMoveSemantic
         info.Mobile = "17849588232"s;
 
         return info;
+    }
+
+    void UseClientInfo(ClientUserInfo&& client)
+    {
+        //ClientUserInfo cli(std::forward<ClientUserInfo>(client));
+        ClientUserInfo cli(std::move(client));
+
+        cli.Print();
     }
 
     void TestGetClient()
@@ -77,5 +90,15 @@ inline namespace TestMoveSemantic
         cout << "a  = " << a << endl;
         cout << "b  = " << b << endl;
         cout << "c  = " << c << endl;
+    }
+
+    void test_rv_param()
+    {
+        ClientUserInfo client = GetClient();
+        cout << "begin\n";
+        UseClientInfo(std::move(client));
+        cout << "end\n";
+
+        client.Print();
     }
 }

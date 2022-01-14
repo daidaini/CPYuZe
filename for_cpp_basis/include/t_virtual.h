@@ -12,11 +12,13 @@ inline namespace test_virtual
         Base()
         {
             cout << "Base()\n";
+            DoSomething();
         }
 
         virtual ~Base()
         {
             cout << "~Base()\n";
+            DoSomething();
         }
 
         virtual void DoSomething()
@@ -30,22 +32,20 @@ inline namespace test_virtual
     public:
         Derive()
         {
-            m_Data.push_back(10);
-            m_Data.push_back(20);
             cout << "Derive()\n";
+            DoSomething();
         }
 
         ~Derive()
         {
             cout << "~Derive()\n";
+            DoSomething();
         }
 
-        void DoSomething()
+        virtual void DoSomething()
         {
             cout << "Derive::DoSomething\n";
         }
-
-        vector<int> m_Data;
     };
 
     void testing_virtual_destructor()
