@@ -16,7 +16,9 @@ set(EXECUTABLE_OUTPUT_PATH ../)
 
 link_directories(/usr/boost_lib/stage/lib)  
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} 
+    proxy_protocol.h proxy_protocol.cpp ${SOURCES}
+    )
 
 
 #target_link_libraries(${PROJECT_NAME} libboost_filesystem.so)
