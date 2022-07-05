@@ -2,7 +2,7 @@
 
 #include "comm.h"
 
-inline namespace priority_queue_test
+namespace priority_queue_test
 {
     //处理状态
     enum class ProcessState
@@ -22,7 +22,7 @@ inline namespace priority_queue_test
 
         bool operator<(const CancelRejectOrder &rhs) const
         {
-            return rhs.State == ProcessState::Undo;
+            return rhs.State < State;
         }
     };
 
@@ -41,4 +41,7 @@ inline namespace priority_queue_test
             my_pq.pop();
         }
     }
+
+   
+    
 }
