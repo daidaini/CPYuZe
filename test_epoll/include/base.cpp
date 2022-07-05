@@ -1,7 +1,8 @@
 #include "base.h"
 #include <string.h>
-
+#include <iostream>
 #include <fmt/format.h>
+#include <thread>
 
 
 int SetNonblocking(int sock)
@@ -134,9 +135,6 @@ void OnEpAccept(int epfd)
 
 void HandleEpollUsing()
 {
-    if(!DoPrepare())
-        return;
-
     int epfd = epoll_create1(0);
     if (1 == epfd)
     {
@@ -205,6 +203,7 @@ void HandleEpollUsing()
                         printf("(0 == result_len; break\n");
                         break;
                     }
+                    std::cout << '[' << std::this_thread::get_id() << ']';
                     fmt::print(buf);
                     //write(STDOUT_FILENO, buf, result_len);
                     char delim[] = "--------------------------\n";

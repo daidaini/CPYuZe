@@ -14,6 +14,9 @@
 #define MAX_EVENT 20
 #define READ_BUF_LEN 256
 
+
+bool DoPrepare();
+
 int SetNonblocking(int sock);
 
 char rot13_char(char c);
